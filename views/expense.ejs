@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense | SpendSync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+    .loader { border-top-color: #ef4444; animation: spinner 1.5s linear infinite; }
+    @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+  <div class="md:hidden fixed top-0 w-full bg-white shadow-sm z-50 flex justify-between items-center p-4">
+    <span class="font-bold text-lg text-gray-800">SpendSync</span>
+    <button onclick="openMenu()" class="text-gray-600 focus:outline-none">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+    </button>
+  </div>
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity" onclick="closeMenu()"></div>
+
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:h-screen flex-shrink-0">
+    <div class="p-6 h-full flex flex-col overflow-y-auto">
+      <div class="flex justify-end md:hidden mb-4"><button onclick="closeMenu()" class="text-gray-500">✕</button></div>
+      <div class="flex flex-col items-center mb-8">
+        <h3 class="font-bold text-gray-800"><%= user.username %></h3>
+      </div>
+      <nav class="space-y-2 flex-1">
+        <a href="/" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">Dashboard</a>
+        <a href="/income" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">Income</a>
+        <a href="/expense" class="block px-6 py-3 bg-red-600 text-white rounded-xl shadow-md font-medium">Expense</a>
+         <a href="/budget" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">
+    Budgets
+</a>
+<a href="/groups" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">
+    Groups
+</a>
+      </nav>
+      <a href="/logout" class="block px-6 py-3 text-gray-500 hover:text-red-500 font-medium mt-4">Logout</a>
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-y-auto p-4 pt-20 md:p-8 md:pt-8 w-full">
+    <% if (typeof alerts !== 'undefined' && alerts.length > 0) { %>
+    <div class="mb-6 space-y-2">
+        <% alerts.forEach(alert => { %>
+            <div class="p-3 text-sm rounded-lg bg-red-50 border border-red-200 text-red-700 flex justify-between">
+                <span><strong>Budget Warning:</strong> <%= alert.category %> is at <%= alert.percent %>%</span>
+                <a href="/budget" class="underline font-bold">Manage</a>
+            </div>
+        <% }) %>
+    </div>
+<% } %>
+    <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-800">Expense Overview</h2>
+        <p class="text-gray-500 mt-1">Track your spending trends.</p>
+      </div>
+      
+      <div class="flex gap-3">
+        <button onclick="document.getElementById('receiptInput').click()" class="flex items-center gap-2 bg-white border border-red-200 text-red-600 font-semibold py-2.5 px-6 rounded-lg hover:bg-red-50 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Scan Receipt
+        </button>
+        <input type="file" id="receiptInput" accept="image/*" class="hidden" onchange="scanReceipt(this)">
+
+        <button onclick="openModal()" class="bg-red-600 text-white font-semibold py-2.5 px-6 rounded-lg hover:bg-red-700 transition-colors">
+            + Add Expense
+        </button>
+      </div>
+
+      <div class="relative inline-block text-left">
+        <button onclick="toggleExportMenu()" class="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download Report
+        </button>
+        <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+            <div class="py-1">
+                <button onclick="exportData('csv')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as CSV</button>
+                <button onclick="exportData('excel')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as Excel (.xlsx)</button>
+                <button onclick="exportData('pdf')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export as PDF</button>
+            </div>
+        </div>
+      </div>
+    </header>
+
+    <div id="scanLoader" class="hidden fixed inset-0 bg-black/50 z-[60] flex flex-col items-center justify-center text-white">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+        <p class="font-medium">AI is analyzing your receipt...</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 h-80">
+      <canvas id="expenseChart"></canvas>
+    </div>
+
+    <section>
+      <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <h3 class="text-xl font-bold text-gray-800">Recent Expenses</h3>
+        <select id="expFilter" onchange="filterExp()" class="border border-gray-200 rounded-lg px-4 py-2 bg-white text-sm font-medium text-gray-600 outline-none focus:ring-2 focus:ring-red-500">
+          <option value="all">All Categories</option>
+          <% [...new Set(transactions.map(t => t.category))].forEach(cat => { %>
+            <option value="<%= cat %>"><%= cat %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div id="expGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <% if (transactions && transactions.length > 0) { %>
+          <% transactions.forEach(function(t) { %>
+            <div class="exp-item bg-white p-5 rounded-2xl flex items-center justify-between border border-gray-100 hover:border-red-200 transition-all group" data-category="<%= t.category %>">
+              <div>
+                <h4 class="font-bold text-gray-800 text-lg uppercase"><%= t.category %></h4>
+                
+                <p class="text-sm text-gray-400 font-medium"><%= new Date(t.date).toDateString() %></p>
+              </div>
+              <div class="flex items-center gap-6">
+                <% if (t.isRecurring && t.isActive) { %>
+    <form action="/transaction/stop/<%= t._id %>" method="POST" class="inline">
+        <button class="text-[10px] bg-gray-100 px-2 py-1 rounded hover:bg-red-100 text-red-600 font-bold">
+            STOP RECURRING
+        </button>
+    </form>
+<% } %>
+                <span class="font-bold text-red-600 text-lg">- ₹<%= t.amount.toLocaleString('en-IN') %></span>
+                <button onclick="deleteTransaction('<%= t._id %>')" class="text-gray-300 hover:text-red-500 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div class="col-span-full text-center py-10 text-gray-400">No expenses found.</div>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <div id="expenseModal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl relative mx-4">
+      <button onclick="closeModal()" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+      <h2 class="text-2xl font-bold mb-6 text-red-600">Add Expense</h2>
+      
+      <form action="/transaction" method="POST" id="expenseForm" class="space-y-4">
+        <input type="hidden" name="type" value="expense">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <input name="category" id="modalCategory" type="text" placeholder="Food, Rent..." required class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <input name="amount" id="modalAmount" type="number" step="0.01" placeholder="0.00" required class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input name="date" id="modalDate" type="date" required class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500">
+        </div>
+        <div class="flex items-center gap-2 mb-4">
+            <input type="checkbox" name="isRecurring" value="true" id="recurringCheck" onchange="toggleFrequency()">
+            <label for="recurringCheck" class="text-sm font-medium text-gray-700">Make this recurring</label>
+        </div>
+
+        <div id="frequencyDiv" class="hidden mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+            <select name="frequency" class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+        </div>
+        <button type="submit" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-700 transition-all mt-4">Add Expense</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // --- Receipt Scanning Feature ---
+    async function scanReceipt(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const formData = new FormData();
+        formData.append('receipt', input.files[0]);
+
+        // Show Loader
+        document.getElementById('scanLoader').classList.remove('hidden');
+
+        try {
+            const response = await fetch('/scan-receipt', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                // Autofill the modal
+                document.getElementById('modalAmount').value = data.amount;
+                document.getElementById('modalCategory').value = data.category;
+                document.getElementById('modalDate').value = data.date;
+                
+                // Open the modal for user review
+                openModal();
+            }
+        } catch (err) {
+            console.error("Scan Error:", err);
+            alert("Failed to scan receipt. Please try again.");
+        } finally {
+            // Hide Loader and reset input
+            document.getElementById('scanLoader').classList.add('hidden');
+            input.value = ''; 
+        }
+    }
+
+    // --- Original Logic ---
+    function toggleExportMenu() {
+        document.getElementById('exportMenu').classList.toggle('hidden');
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.closest('button')) {
+            const menu = document.getElementById('exportMenu');
+            if (menu) menu.classList.add('hidden');
+        }
+    }
+
+    async function exportData(format) {
+        const data = <%- JSON.stringify(transactions || []) %>;
+        if (data.length === 0) return alert("No data to export");
+        const pageType = "EXPENSE";
+        const fileName = `SpendSync_EXPENSE_${new Date().toLocaleDateString()}`;
+
+        const preparedData = data.map(t => ({
+            Date: new Date(t.date).toLocaleDateString(),
+            Category: t.category,
+            Amount: t.amount,
+            Status: t.isRecurring ? 'Recurring' : 'One-time'
+        }));
+
+        if (format === 'csv') {
+            const csvRows = [
+                ["Date", "Category", "Amount", "Status"],
+                ...preparedData.map(d => [d.Date, `"${d.Category}"`, d.Amount, d.Status])
+            ];
+            const csvContent = csvRows.map(e => e.join(",")).join("\n");
+            downloadFile(csvContent, `${fileName}.csv`, 'text/csv');
+        } else if (format === 'excel') {
+            const worksheet = XLSX.utils.json_to_sheet(preparedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+            XLSX.writeFile(workbook, `${fileName}.xlsx`);
+        } else if (format === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text(`EXPENSE REPORT`, 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+            const tableColumn = ["Date", "Category", "Amount", "Status"];
+            const tableRows = preparedData.map(d => [d.Date, d.Category, `INR ${d.Amount}`, d.Status]);
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 35,
+                theme: 'grid',
+                headStyles: { fillColor: [220, 38, 38] } // Red theme for expenses
+            });
+            doc.save(`${fileName}.pdf`);
+        }
+    }
+
+    function downloadFile(content, fileName, contentType) {
+        const a = document.createElement("a");
+        const file = new Blob([content], { type: contentType });
+        a.href = URL.createObjectURL(file);
+        a.download = fileName;
+        a.click();
+    }
+
+    function filterExp() {
+      const val = document.getElementById('expFilter').value;
+      document.querySelectorAll('.exp-item').forEach(card => {
+        card.style.display = (val === 'all' || card.dataset.category === val) ? 'flex' : 'none';
+      });
+    }
+
+    function openMenu() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('sidebarOverlay').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+    function closeMenu() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebarOverlay').classList.add('hidden'); document.body.style.overflow = 'auto'; }
+    function openModal() { document.getElementById('expenseModal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('expenseModal').classList.add('hidden'); }
+    
+    function deleteTransaction(id) { 
+        if(confirm("Delete this?")) {
+            fetch('/transaction/'+id, { method: 'DELETE' })
+            .then(res => res.ok && window.location.reload());
+        }
+    }
+
+    // Chart Data Processing
+    var rawData = <%- JSON.stringify(transactions || []) %>;
+    rawData.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+    var recentItems = rawData.slice(0, 60);
+    recentItems.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+    
+    var groupedData = {};
+    recentItems.forEach(item => {
+        var d = new Date(item.date);
+        var dateLabel = d.getDate() + " " + d.toLocaleString('default', { month: 'short' });
+        groupedData[dateLabel] = (groupedData[dateLabel] || 0) + item.amount;
+    });
+
+    var ctx = document.getElementById("expenseChart").getContext("2d");
+    var gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.5)');
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0.0)');
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: Object.keys(groupedData),
+        datasets: [{ 
+            label: "Expense", data: Object.values(groupedData), borderColor: '#dc2626', 
+            backgroundColor: gradient, fill: true, borderWidth: 3, tension: 0.4, pointRadius: 0
+        }]
+      },
+      options: { 
+        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
+        scales: { y: { grid: { display: false }, beginAtZero: true }, x: { grid: { display: false } } }
+      }
+    });
+
+    function toggleFrequency() {
+        const isChecked = document.getElementById('recurringCheck').checked;
+        document.getElementById('frequencyDiv').classList.toggle('hidden', !isChecked);
+    }
+  </script>
+</body>
+</html>

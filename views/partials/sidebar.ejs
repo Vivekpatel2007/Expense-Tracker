@@ -1,0 +1,13 @@
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:h-screen flex-shrink-0">
+    <div class="p-6 h-full flex flex-col">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-purple-600">SpendSync</h1>
+        </div>
+        <nav class="space-y-2 flex-1">
+            <a href="/" class="block px-6 py-3 rounded-xl font-medium <%= page === 'dashboard' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:bg-gray-50' %>">Dashboard</a>
+            <a href="/income" class="block px-6 py-3 rounded-xl font-medium <%= page === 'income' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:bg-gray-50' %>">Income</a>
+            <a href="/expense" class="block px-6 py-3 rounded-xl font-medium <%= page === 'expense' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:bg-gray-50' %>">Expense</a>
+        </nav>
+        <a href="/logout" class="block px-6 py-3 text-red-500 hover:bg-red-50 rounded-xl font-medium transition-colors">Logout</a>
+    </div>
+</aside>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | SpendSync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    /* Custom scrollbar for a cleaner look */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+  <div class="md:hidden fixed top-0 inset-x-0 bg-white shadow-md z-50 flex justify-between items-center px-4 py-3">
+    <span class="font-bold text-xl text-gray-800">SpendSync</span>
+    <button id="menuBtn" class="text-gray-600 focus:outline-none hover:text-purple-600 transition-colors">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
+  </div>
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
+
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform -translate-x-full md:translate-x-0 sidebar-transition md:static md:h-full md:shadow-none md:border-r border-gray-200 flex-shrink-0">
+    <div class="p-6 h-full flex flex-col overflow-y-auto">
+      <div class="flex justify-between items-center mb-6 md:hidden">
+        <span class="font-bold text-xl text-gray-800">Menu</span>
+        <button id="closeSidebar" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div class="flex flex-col items-center mb-8">
+       <h3 class="font-bold text-gray-800 text-lg"><%= user.username %></h3>
+      </div>
+      <nav class="space-y-2 flex-1">
+        <a href="/" class="flex items-center gap-3 px-6 py-3 rounded-xl bg-purple-600 text-white shadow-lg shadow-purple-200 font-medium">
+          <span>Dashboard</span>
+        </a>
+        <a href="/income" class="flex items-center gap-3 px-6 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-purple-600 transition font-medium">
+        <span>Income</span>
+        </a>
+        <a href="/expense" class="flex items-center gap-3 px-6 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-purple-600 transition font-medium">
+        <span>Expense</span>
+        </a>
+        <a href="/budget" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">
+    Budgets
+</a>
+<a href="/groups" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">
+    Groups
+</a>
+      </nav>
+      <a href="/logout" class="flex items-center gap-3 px-6 py-3 rounded-xl text-red-500 hover:bg-red-50 transition mt-4 font-medium">
+       <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="flex-1 w-full p-4 pt-20 md:p-8 md:pt-8 overflow-y-auto h-full">
+    <header class="mb-6 md:mb-8">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h2>
+      <p class="text-gray-500 text-sm md:text-base mt-1">Welcome back, Mike!</p>
+    </header>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+        <div class="min-w-0">
+          <p class="text-xs md:text-sm text-gray-500 font-medium">Total Balance</p>
+          <p class="text-lg md:text-2xl font-bold text-gray-800 truncate">₹<%= new Intl.NumberFormat('en-IN').format(balance) %></p>
+        </div>
+      </div>
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
+        <div class="min-w-0">
+          <p class="text-xs md:text-sm text-gray-500 font-medium">Total Income</p>
+          <p class="text-lg md:text-2xl font-bold text-gray-800 truncate">₹<%= new Intl.NumberFormat('en-IN').format(income) %></p>
+        </div>
+      </div>
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center sm:col-span-2 lg:col-span-1">
+        <div class="min-w-0">
+          <p class="text-xs md:text-sm text-gray-500 font-medium">Total Expenses</p>
+          <p class="text-lg md:text-2xl font-bold text-gray-800 truncate">₹<%= new Intl.NumberFormat('en-IN').format(expense) %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 md:mb-8">
+      <div class="lg:col-span-2 bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-4 md:mb-6">
+          <h3 class="text-base md:text-lg font-bold text-gray-800">Recent Transactions</h3>
+          <a href="all-Transactions" class="text-xs md:text-sm text-purple-600 font-medium hover:text-purple-700">See All →</a>
+        </div>
+        <div class="space-y-3">
+          <% transactions.slice(0, 4).forEach(t => { %>
+            <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition border-b border-gray-50 last:border-0">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold text-sm md:text-base text-gray-800 truncate"><%= t.category %></p>
+                  <p class="text-xs text-gray-400"><%= new Date(t.date).toDateString() %></p>
+                </div>
+              </div>
+              <p class="<%= t.type === 'income' ? 'text-green-500' : 'text-red-500' %> font-bold text-sm md:text-base whitespace-nowrap ml-2">
+                <%= t.type === 'income' ? '+' : '-' %> ₹<%= new Intl.NumberFormat('en-IN').format(t.amount) %>
+              </p>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Financial Overview</h3>
+        <div class="relative flex-1 flex items-center justify-center" style="min-height: 200px;">
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <p class="text-xs md:text-sm text-gray-400">Balance</p>
+            <p class="text-lg md:text-xl font-bold text-gray-800">₹<%= new Intl.NumberFormat('en-IN', { notation: "compact" }).format(balance) %></p>
+          </div>
+          <canvas id="overviewChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="lg:col-span-2 bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-4 md:mb-6">
+          <h3 class="text-base md:text-lg font-bold text-gray-800">Incomes</h3>
+          <a href="/income" class="text-xs md:text-sm text-purple-600 font-medium hover:text-purple-700">See All →</a>
+        </div>
+        <div class="space-y-3">
+          <% if(incomeTx.length === 0) { %>
+            <p class="text-gray-400 text-sm">No income transactions found.</p>
+          <% } %>
+          <% incomeTx.slice(0, 3).forEach(t => { %>
+            <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition border-b border-gray-50 last:border-0">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-sm md:text-base text-gray-800 truncate"><%= t.category %></p>
+                <p class="text-xs text-gray-400"><%= new Date(t.date).toDateString() %></p>
+              </div>
+              <p class="text-green-500 font-bold text-sm md:text-base whitespace-nowrap ml-2">+ ₹<%= new Intl.NumberFormat('en-IN').format(t.amount) %></p>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 mb-4">Income (60 Days)</h3>
+        <div class="relative flex-1 flex items-center justify-center">
+          <canvas id="incomeSourceChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="lg:col-span-2 bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-4 md:mb-6">
+          <h3 class="text-base md:text-lg font-bold text-gray-800">Expenses</h3>
+          <a href="/expense" class="text-xs md:text-sm text-purple-600 font-medium hover:text-purple-700">See All →</a>
+        </div>
+        <div class="space-y-3">
+           <% if(expenseTx.length === 0) { %>
+            <p class="text-gray-400 text-sm">No expense transactions found.</p>
+          <% } %>
+          <% expenseTx.slice(0, 3).forEach(t => { %>
+            <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition border-b border-gray-50 last:border-0">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-sm md:text-base text-gray-800 truncate"><%= t.category %></p>
+                <p class="text-xs text-gray-400"><%= new Date(t.date).toDateString() %></p>
+              </div>
+              <p class="text-red-500 font-bold text-sm md:text-base whitespace-nowrap ml-2">- ₹<%= new Intl.NumberFormat('en-IN').format(t.amount) %></p>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 mb-4">Expense (30 Days)</h3>
+        <div class="relative flex-1">
+          <canvas id="expenseCategoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // UI Interaction
+    const [sidebar, overlay, body] = [document.getElementById('sidebar'), document.getElementById('sidebarOverlay'), document.body];
+    const toggleSidebar = (show) => {
+      sidebar.classList.toggle('-translate-x-full', !show);
+      overlay.classList.toggle('hidden', !show);
+      // We don't toggle body overflow because body is already h-screen overflow-hidden
+    };
+    document.getElementById('menuBtn').onclick = () => toggleSidebar(true);
+    document.getElementById('closeSidebar').onclick = overlay.onclick = () => toggleSidebar(false);
+
+    // Data Processing
+    const txs = <%- JSON.stringify(transactions || []) %>;
+    const [inc, exp, bal] = [<%= income %>, <%= expense %>, <%= balance %>];
+
+    const getChartData = (type, days) => {
+        const limit = new Date(); limit.setDate(limit.getDate() - days);
+        const map = txs.reduce((acc, t) => {
+            if (t.type === type && new Date(t.date) >= limit) acc[t.category] = (acc[t.category] || 0) + t.amount;
+            return acc;
+        }, {});
+        const keys = Object.keys(map);
+        return keys.length ? { labels: keys, data: Object.values(map) } : { labels: ['No Data'], data: [type === 'income' ? 1 : 0] };
+    };
+
+    const incData = getChartData('income', 60);
+    const expData = getChartData('expense', 30);
+    const commonOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+
+    // Charts
+    new Chart(document.getElementById("overviewChart"), {
+        type: 'doughnut',
+        data: { labels: ['Balance', 'Income', 'Expense'], datasets: [{ data: [bal, inc, exp], backgroundColor: ["#4f46e5", "#22c55e", "#f97316"], borderWidth: 0 }] },
+        options: { ...commonOpts, cutout: '80%' }
+    });
+
+    new Chart(document.getElementById("incomeSourceChart"), {
+        type: 'doughnut',
+        data: { labels: incData.labels, datasets: [{ data: incData.data, backgroundColor: ["#8b5cf6", "#f43f5e", "#f59e0b", "#10b981", "#3b82f6"], borderWidth: 0 }] },
+        options: { ...commonOpts, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+    });
+
+    new Chart(document.getElementById("expenseCategoryChart"), {
+        type: 'bar',
+        data: { labels: expData.labels, datasets: [{ label: 'Expense', data: expData.data, backgroundColor: "#8b5cf6", borderRadius: 4 }] },
+        options: { ...commonOpts, scales: { y: { beginAtZero: true, grid: { borderDash: [2, 2], drawBorder: false }, ticks: { callback: v => '₹'+v, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+    });
+    window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'welcome') {
+        Toastify({
+            text: "🚀 Welcome to SpendSync! Your account is ready.",
+            duration: 5000,
+            style: { background: "#8b5cf6", borderRadius: "12px" }
+        }).showToast();
+    }
+    window.history.replaceState({}, document.title, window.location.pathname);
+});
+  </script>
+</body>
+</html>

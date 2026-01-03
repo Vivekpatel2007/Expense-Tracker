@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budgets | SpendSync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+  </style>
+</head>
+
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+  <div class="md:hidden fixed top-0 w-full bg-white shadow-sm z-50 flex justify-between items-center p-4">
+    <span class="font-bold text-lg text-gray-800">SpendSync</span>
+    <button onclick="openMenu()" class="text-gray-600 focus:outline-none">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        </svg>
+    </button>
+  </div>
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity" onclick="closeMenu()"></div>
+
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:h-screen flex-shrink-0">
+    <div class="p-6 h-full flex flex-col overflow-y-auto">
+      <div class="flex justify-end md:hidden mb-4"><button onclick="closeMenu()" class="text-gray-500">✕</button></div>
+      <div class="flex flex-col items-center mb-8">
+        <h3 class="font-bold text-gray-800"><%= user.username %></h3>
+      </div>
+      <nav class="space-y-2 flex-1">
+        <a href="/" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">Dashboard</a>
+        <a href="/income" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">Income</a>
+        <a href="/expense" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">Expense</a>
+        <a href="/budget" class="block px-6 py-3 bg-purple-600 text-white rounded-xl shadow-md font-medium">Budgets</a>
+        <a href="/groups" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 rounded-xl font-medium transition-colors">
+    Groups
+</a>
+      </nav>
+      <a href="/logout" class="block px-6 py-3 text-gray-500 hover:text-red-500 font-medium mt-4">Logout</a>
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-y-auto p-4 pt-20 md:p-8 md:pt-8 w-full">
+    <% const activeAlerts = budgetData.filter(b => b.isAlert); %>
+    <% if (activeAlerts.length > 0) { %>
+        <div class="mb-8 space-y-3">
+            <% activeAlerts.forEach(alert => { %>
+                <div class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl shadow-sm animate-pulse">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <p class="font-semibold text-sm">Attention: You have reached <%= Math.round(alert.percent) %>% of your <%= alert.category %> budget!</p>
+                </div>
+            <% }) %>
+        </div>
+    <% } %>
+
+    <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-800">Monthly Budgets</h2>
+        <p class="text-gray-500 mt-1">Manage your limits and track spending by category.</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="toggleModal(true)" class="bg-purple-600 text-white font-semibold py-2.5 px-6 rounded-lg hover:bg-purple-700 transition-colors">
+          + Set Budget
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% if (budgetData && budgetData.length > 0) { %>
+            <% budgetData.forEach(function(budget) { %>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col hover:border-purple-200 transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-lg uppercase"><%= budget.category %></h4>
+                            <p class="text-xs text-purple-500 font-medium mb-1">
+                                Created in: <%= new Date(budget.createdAt).toLocaleString('default', { month: 'short', year: 'numeric' }) %>
+                            </p>
+                            <p class="text-sm text-gray-500">Goal: ₹<%= (budget.limit || 0).toLocaleString('en-IN') %></p>
+                        </div>
+                        <form action="/budget/delete/<%= budget._id %>" method="POST">
+                            <button type="submit" class="text-gray-300 hover:text-red-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="w-full bg-gray-100 rounded-full h-3 mb-3 overflow-hidden">
+                        <div class="h-full transition-all duration-500 <%= budget.isAlert ? 'bg-red-500' : 'bg-purple-500' %>" 
+                             style="width: <%= Math.min(budget.percent, 100) %>%"></div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-sm font-medium">
+                        <span class="<%= budget.isAlert ? 'text-red-600' : 'text-gray-600' %>">
+                            Spent: ₹<%= budget.currentSpend.toLocaleString('en-IN') %>
+                        </span>
+                        <span class="text-gray-400"><%= Math.round(budget.percent) %>%</span>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="col-span-full text-center py-20 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                <p>No budgets found. Set your first limit to track expenses!</p>
+            </div>
+        <% } %>
+    </div>
+  </main>
+
+  <div id="budgetModal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative mx-4">
+      <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">New Budget Limit</h2>
+      <form action="/budget/add" method="POST" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <input name="category" type="text" placeholder="Category (e.g. food)" required class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+          <input name="limit" type="number" placeholder="0.00" required class="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition-all mt-4">Start Tracking</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Navigation controls to match expense.ejs
+    function openMenu() { 
+      document.getElementById('sidebar').classList.remove('-translate-x-full'); 
+      document.getElementById('sidebarOverlay').classList.remove('hidden'); 
+      document.body.style.overflow = 'hidden'; 
+    }
+    function closeMenu() { 
+      document.getElementById('sidebar').classList.add('-translate-x-full'); 
+      document.getElementById('sidebarOverlay').classList.add('hidden'); 
+      document.body.style.overflow = 'auto'; 
+    }
+    function toggleModal(show) { document.getElementById('budgetModal').classList.toggle('hidden', !show); }
+  </script>
+</body>
+</html>
