@@ -9,6 +9,7 @@ exports.loginGet = (req, res) => {
     res.render("login");
 };
 exports.loginPost = async (req, res) => {
+    try{
     const { username, password } = req.body;
 
     // Search by username because email is not unique anymore
@@ -19,7 +20,14 @@ exports.loginPost = async (req, res) => {
     if (!ok) return res.redirect("/login?error=wrongpassword");
 
     req.session.userId = user._id;
-    res.redirect("/");
+        req.session.save((err) => {
+            if (err) return next(err);
+            res.redirect("/");
+        });
+    } catch (err) {
+        console.error("Login Error:", err);
+        res.redirect("/login?error=servererror");
+    }
 };
 exports.registerPost = async (req, res) => {
     const { username, email, password } = req.body;
@@ -57,4 +65,5 @@ exports.logout = (req, res) => {
         res.clearCookie("connect.sid");
         res.redirect("/login");
     });
+
 };
