@@ -112,34 +112,34 @@ exports.createGroup = async (req, res) => {
 
 
 // Add member by username
+
 exports.addMember = async (req, res) => {
     try {
         const { username } = req.body;
         const group = await Group.findById(req.params.id);
-        const userToAdd = await User.findOne({ username: username.trim() });
+        
+        // Search lowercase to match your registerPost logic
+        const userToAdd = await User.findOne({ username: username.trim().toLowerCase() });
 
-        // 1. Check if user exists
         if (!userToAdd) {
-            return res.status(404).json({ success: false, message: "User does not exist" });
+            return res.status(404).json({ success: false, message: "User not found!" });
         }
 
-        // 2. Check if user is already in the group
+        // Check if ID is already in members array
         if (group.members.includes(userToAdd._id)) {
-            return res.status(400).json({ success: false, message: "User is already a member" });
+            return res.status(400).json({ success: false, message: "User is already in this group" });
         }
 
-        // 3. Success
         group.members.push(userToAdd._id);
         await group.save();
         
         res.status(200).json({ 
             success: true, 
-            message: "User added successfully!",
-            user: { _id: userToAdd._id, username: userToAdd.username } 
+            message: `${userToAdd.username} added successfully!` 
         });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error occurred" });
     }
 };
 // Get individual details for a specific group expense
@@ -320,4 +320,5 @@ exports.deleteExpense = async (req, res) => {
     } catch (err) {
         res.status(500).send("Error deleting expense");
     }
+
 };
