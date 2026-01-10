@@ -48,6 +48,7 @@
                 <a href="/" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Dashboard</a>
                 <a href="/income" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Income</a>
                 <a href="/expense" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Expense</a>
+                 <a href="/budget" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Budgets</a>
                 <a href="/groups" class="block px-6 py-3 bg-purple-600 text-white rounded-xl shadow-md font-medium">Groups</a>
             </nav>
             <a href="/logout" class="block px-6 py-3 text-gray-500 hover:text-red-500 font-medium mt-4">Logout</a>
@@ -163,9 +164,9 @@
 
                 <div id="memberSection" class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                     <h3 class="font-bold text-gray-400 mb-4 text-xs uppercase">Members</h3>
-                    <form id="addMemberForm" class="flex gap-2 mb-4">
-                        <input id="memberUsername" type="text" placeholder="Username" required class="flex-1 border rounded-xl px-4 py-2 text-sm outline-none">
-                        <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold">+</button>
+                    <form id="addMemberForm" onsubmit="handleAddMember(event)" class="flex gap-2 mb-4">
+                        <input name="username" id="memberUsername" type="text" placeholder="Username" required class="flex-1 border rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500">
+                        <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-purple-700 transition">+</button>
                     </form>
                     <div id="memberList" class="flex flex-wrap gap-2">
                         <% group.members.forEach(m => { %>
@@ -175,7 +176,7 @@
                                     <span class="bg-black text-white text-[8px] px-1 rounded uppercase">Admin</span>
                                 <% } %>
                                 <% if (group.createdBy.toString() === currentUser.toString() && m._id.toString() !== currentUser.toString()) { %>
-                                    <button onclick="handleRemoveMember('<%= m._id %>', '<%= group.createdBy %>')" class="text-gray-400 hover:text-red-500 font-bold ml-1">✕</button>
+                                    <button onclick="handleRemoveMember('<%= m._id %>')" class="text-gray-400 hover:text-red-500 font-bold ml-1">✕</button>
                                 <% } %>
                             </span>
                         <% }) %>
@@ -190,7 +191,7 @@
                         <select name="splitType" id="splitType" class="w-full border rounded-xl px-4 py-3 bg-gray-50 text-sm">
                             <option value="equal">Split Equally</option>
                         </select>
-                        <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg">Add Expense</button>
+                        <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-purple-700 transition">Add Expense</button>
                     </form>
                 </div>
             </div>
@@ -199,7 +200,7 @@
                 <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                     <div class="p-6 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
                         <h3 class="font-bold text-gray-800 text-xl">History</h3>
-                        <input type="text" id="descSearch" onkeyup="filterHistory()" placeholder="Search..." class="px-4 py-2 border rounded-xl text-sm outline-none">
+                        <input type="text" id="descSearch" onkeyup="filterHistory()" placeholder="Search..." class="px-4 py-2 border rounded-xl text-sm outline-none focus:border-purple-500">
                     </div>
                     <div class="divide-y divide-gray-50 overflow-y-auto max-h-[800px]">
                         <% if (expenses && expenses.length > 0) { %>
@@ -238,7 +239,7 @@
             <form action="/groups/<%= group._id %>/settle" method="POST" class="space-y-4">
                 <input type="hidden" name="paidToId" id="modalPaidToId">
                 <input name="amount" id="modalAmount" type="number" step="0.01" required class="w-full border-2 border-purple-100 rounded-xl px-4 py-3 text-lg font-black text-purple-600 outline-none">
-                <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl">Confirm Settlement</button>
+                <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl hover:bg-purple-700 transition">Confirm Settlement</button>
             </form>
         </div>
     </div>
@@ -249,6 +250,69 @@
             const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('-translate-x-full', !show);
             overlay.classList.toggle('hidden', !show);
+        }
+
+        // --- Add Member Functionality ---
+        async function handleAddMember(event) {
+            event.preventDefault();
+            const username = document.getElementById('memberUsername').value;
+            const groupId = "<%= group._id %>";
+
+            try {
+                const response = await fetch(`/groups/${groupId}/add-member`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    Toastify({
+                        text: "✅ " + data.message,
+                        duration: 3000,
+                        style: { background: "#10b981", borderRadius: "12px" }
+                    }).showToast();
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    Toastify({
+                        text: "❌ " + data.message,
+                        duration: 4000,
+                        style: { background: "#ef4444", borderRadius: "12px" }
+                    }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "❌ Connection Error", style: { background: "#000" } }).showToast();
+            }
+        }
+
+        // --- Remove Member Functionality ---
+        async function handleRemoveMember(userId) {
+            if(!confirm('Are you sure you want to remove this member?')) return;
+            const groupId = "<%= group._id %>";
+
+            try {
+                const response = await fetch(`/groups/${groupId}/remove-member/${userId}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    Toastify({
+                        text: "🗑️ Member removed successfully",
+                        duration: 3000,
+                        style: { background: "#3b82f6", borderRadius: "12px" }
+                    }).showToast();
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    Toastify({
+                        text: "❌ " + data.message,
+                        duration: 5000,
+                        style: { background: "#ef4444", borderRadius: "12px" }
+                    }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "❌ Error processing request", style: { background: "#000" } }).showToast();
+            }
         }
 
         // CHARTS LOGIC
@@ -289,30 +353,19 @@
         }
         function closeSettleModal() { document.getElementById('settleModal').classList.add('hidden'); }
 
-        // Check for "Unsettled" error when trying to leave
-window.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    
-    if (params.get('error') === 'unsettled') {
-        Toastify({
-            text: `⚠️ Cannot leave! You have a pending balance of ₹${params.get('amount')}`,
-            duration: 5000,
-            gravity: "top", 
-            position: "center",
-            style: {
-                background: "linear-gradient(to right, #ff5f6d, #ffc371)",
-                borderRadius: "12px",
-                fontWeight: "bold",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('error') === 'unsettled') {
+                Toastify({
+                    text: `⚠️ Cannot leave! You have a pending balance of ₹${params.get('amount')}`,
+                    duration: 5000,
+                    gravity: "top", 
+                    position: "center",
+                    style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)", borderRadius: "12px", fontWeight: "bold" }
+                }).showToast();
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
-        }).showToast();
-        
-        // Clean the URL so the toast doesn't reappear on refresh
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-});
-
+        });
     </script>
 </body>
-
 </html>
