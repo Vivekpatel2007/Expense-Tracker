@@ -48,7 +48,7 @@
                 <a href="/" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Dashboard</a>
                 <a href="/income" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Income</a>
                 <a href="/expense" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Expense</a>
-                 <a href="/budget" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Budgets</a>
+                <a href="/budget" class="block px-6 py-3 text-gray-500 hover:bg-gray-50 rounded-xl font-medium">Budgets</a>
                 <a href="/groups" class="block px-6 py-3 bg-purple-600 text-white rounded-xl shadow-md font-medium">Groups</a>
             </nav>
             <a href="/logout" class="block px-6 py-3 text-gray-500 hover:text-red-500 font-medium mt-4">Logout</a>
@@ -185,12 +185,31 @@
 
                 <div id="expenseFormSection" class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                     <h3 class="font-bold text-gray-400 mb-4 text-xs uppercase">New Expense</h3>
-                    <form action="/groups/<%= group._id %>/add-expense" method="POST" class="space-y-4">
-                        <input name="description" type="text" placeholder="Description" required class="w-full border rounded-xl px-4 py-3 text-sm">
-                        <input name="amount" type="number" step="0.01" placeholder="Amount (₹)" required class="w-full border rounded-xl px-4 py-3 text-sm">
-                        <select name="splitType" id="splitType" class="w-full border rounded-xl px-4 py-3 bg-gray-50 text-sm">
-                            <option value="equal">Split Equally</option>
-                        </select>
+                    <form id="addExpenseForm" action="/groups/<%= group._id %>/add-expense" method="POST" class="space-y-4">
+                        <input name="description" type="text" placeholder="Description" required class="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
+                        <input name="amount" id="mainAmount" type="number" step="0.01" placeholder="Amount (₹)" required class="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Split Type</label>
+                            <select name="splitType" id="splitType" onchange="toggleSplitInputs()" class="w-full border rounded-xl px-4 py-3 bg-gray-50 text-sm outline-none focus:border-purple-500">
+                                <option value="equal">Split Equally</option>
+                                <option value="unequal">Split Unequally</option>
+                            </select>
+                        </div>
+
+                        <div id="unequalSection" class="hidden space-y-3 pt-4 border-t border-dashed">
+                            <p class="text-[10px] font-bold text-purple-600 uppercase mb-2">Specify exact amounts</p>
+                            <% group.members.forEach(m => { %>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs font-semibold text-gray-600 truncate"><%= m.username %></span>
+                                    <input type="number" step="0.01" name="unequalAmounts[<%= m._id %>]" 
+                                           class="unequal-input w-24 border rounded-lg px-2 py-1.5 text-xs text-right outline-none focus:border-purple-500" 
+                                           placeholder="0.00">
+                                </div>
+                            <% }) %>
+                            <p id="splitSumError" class="hidden text-[10px] text-red-500 font-bold bg-red-50 p-2 rounded-lg"></p>
+                        </div>
+
                         <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-purple-700 transition">Add Expense</button>
                     </form>
                 </div>
@@ -209,7 +228,7 @@
                                     <div class="p-6 flex justify-between items-center">
                                         <a href="/groups/<%= group._id %>/expense/<%= exp._id %>" class="min-w-0 flex-1 pr-4">
                                             <h4 class="font-bold text-gray-800 truncate group-hover:text-purple-600 transition"><%= exp.isSettlement ? "🤝 Settlement" : exp.description %></h4>
-                                            <p class="text-[10px] md:text-xs text-gray-400 mt-1"><%= new Date(exp.date).toDateString() %> • Paid by <%= exp.paidBy.username %></p>
+                                            <p class="text-[10px] md:text-xs text-gray-400 mt-1"><%= new Date(exp.date).toDateString() %> • Paid by <%= exp.paidBy.username %> • <span class="capitalize"><%= exp.splitType %></span> split</p>
                                         </a>
                                         <div class="flex items-center gap-4">
                                             <span class="text-sm md:text-lg font-black">₹<%= exp.totalAmount.toLocaleString('en-IN') %></span>
@@ -252,7 +271,41 @@
             overlay.classList.toggle('hidden', !show);
         }
 
-        // --- Add Member Functionality ---
+        // --- Unequal Split Toggle Logic ---
+        function toggleSplitInputs() {
+            const type = document.getElementById('splitType').value;
+            const section = document.getElementById('unequalSection');
+            const inputs = document.querySelectorAll('.unequal-input');
+            
+            if(type === 'unequal') {
+                section.classList.remove('hidden');
+                inputs.forEach(i => i.required = true);
+            } else {
+                section.classList.add('hidden');
+                inputs.forEach(i => { i.required = false; i.value = ''; });
+            }
+        }
+
+        // --- Validate Unequal Split Math ---
+        document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
+            const type = document.getElementById('splitType').value;
+            if(type === 'unequal') {
+                const total = parseFloat(document.getElementById('mainAmount').value);
+                let sum = 0;
+                document.querySelectorAll('.unequal-input').forEach(input => {
+                    sum += parseFloat(input.value || 0);
+                });
+
+                if(Math.abs(sum - total) > 0.01) {
+                    e.preventDefault();
+                    const errorBox = document.getElementById('splitSumError');
+                    errorBox.innerText = `Sum mismatch: Shares add to ₹${sum.toFixed(2)}, but total is ₹${total.toFixed(2)}`;
+                    errorBox.classList.remove('hidden');
+                    return false;
+                }
+            }
+        });
+
         async function handleAddMember(event) {
             event.preventDefault();
             const username = document.getElementById('memberUsername').value;
@@ -267,55 +320,35 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    Toastify({
-                        text: "✅ " + data.message,
-                        duration: 3000,
-                        style: { background: "#10b981", borderRadius: "12px" }
-                    }).showToast();
+                    Toastify({ text: "✅ " + data.message, duration: 3000, style: { background: "#10b981", borderRadius: "12px" } }).showToast();
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    Toastify({
-                        text: "❌ " + data.message,
-                        duration: 4000,
-                        style: { background: "#ef4444", borderRadius: "12px" }
-                    }).showToast();
+                    Toastify({ text: "❌ " + data.message, duration: 4000, style: { background: "#ef4444", borderRadius: "12px" } }).showToast();
                 }
             } catch (err) {
                 Toastify({ text: "❌ Connection Error", style: { background: "#000" } }).showToast();
             }
         }
 
-        // --- Remove Member Functionality ---
         async function handleRemoveMember(userId) {
             if(!confirm('Are you sure you want to remove this member?')) return;
             const groupId = "<%= group._id %>";
 
             try {
-                const response = await fetch(`/groups/${groupId}/remove-member/${userId}`, {
-                    method: 'POST'
-                });
+                const response = await fetch(`/groups/${groupId}/remove-member/${userId}`, { method: 'POST' });
                 const data = await response.json();
-
                 if (data.success) {
-                    Toastify({
-                        text: "🗑️ Member removed successfully",
-                        duration: 3000,
-                        style: { background: "#3b82f6", borderRadius: "12px" }
-                    }).showToast();
+                    Toastify({ text: "🗑️ Member removed successfully", duration: 3000, style: { background: "#3b82f6", borderRadius: "12px" } }).showToast();
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    Toastify({
-                        text: "❌ " + data.message,
-                        duration: 5000,
-                        style: { background: "#ef4444", borderRadius: "12px" }
-                    }).showToast();
+                    Toastify({ text: "❌ " + data.message, duration: 5000, style: { background: "#ef4444", borderRadius: "12px" } }).showToast();
                 }
             } catch (err) {
                 Toastify({ text: "❌ Error processing request", style: { background: "#000" } }).showToast();
             }
         }
 
-        // CHARTS LOGIC
+        // --- Charts Initialization ---
         const mData = <%- JSON.stringify(memberSpendingMap) %>;
         const dData = <%- JSON.stringify(descriptionSpendingMap) %>;
         const chartConfig = { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 }}} } };
