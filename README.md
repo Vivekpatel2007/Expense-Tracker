@@ -1,6 +1,6 @@
 # Expense Tracker
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-black?style=flat-square&logo=Render)](https://expensetracker-qedc.onrender.com/login) [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github)](https://github.com/Vivekpatel2007/Expense-Tracker) [![Express.js](https://img.shields.io/badge/Node.js-16-black?style=flat-square&logo=Nodedotjs)](https://nodejs.org/en)[![MongoDB](https://img.shields.io/badge/MongoDB-Database-3ECF8E?style=flat-square&logo=MongoDB&logoColor=white)](https://mongodb.com/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-black?style=flat-square&logo=Render)](https://expensetracker-qedc.onrender.com/login) [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github)](https://github.com/Vivekpatel2007/Expense-Tracker) [![Express.js](https://img.shields.io/badge/Node.js-16-black?style=flat-square&logo=Nodedotjs)](https://nodejs.org/en)[![MongoDB](https://img.shields.io/badge/MongoDB-3ECF8E?style=flat-square&logo=MongoDB&logoColor=white)](https://mongodb.com/)
 
 
 A comprehensive personal finance management application designed to help users track their expenses, create budgets, and manage their financial transactions. This application provides a user-friendly interface for users to manage their financial data, including income, expenses, and budgets.
@@ -24,7 +24,6 @@ A comprehensive personal finance management application designed to help users t
 | **Database** | MongoDB |
 | **Chart** | Chart.js |
 | **Authentication** | bcryptjs, Express-Session, Connect-Mongo |
-| **Real-time Communication** | Socket.io |
 | **Environment Variables** | dotenv |
 | **AI Tools** | Google Generative AI (for receipt scanning) |
 
